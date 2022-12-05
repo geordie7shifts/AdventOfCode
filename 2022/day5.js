@@ -1,27 +1,13 @@
-const crates_init = () => {
-    return {
-        1: ['R', 'S', 'L', 'F', 'Q'],
-        2: ['N', 'Z', 'Q', 'G', 'P', 'T'],
-        3: ['S', 'M', 'B', 'Q'],
-        4: ['T', 'G', 'Z', 'J', 'H', 'C', 'B', 'Q'],
-        5: ['P', 'H', 'M', 'B', 'N', 'F', 'S'],
-        6: ['P', 'C', 'Q', 'N', 'S', 'L', 'V', 'G'],
-        7: ['W', 'C', 'F'],
-        8: ['Q', 'H', 'G', 'Z', 'W', 'V', 'P', 'M'],
-        9: ['G', 'Z', 'D', 'L', 'C', 'N', 'R']
-    };
-};
-let crates = crates_init();
-// const crates = 
-// `           [Q]     [G]     [M]    
-//             [B] [S] [V]     [P] [R]
-//     [T]     [C] [F] [L]     [V] [N]
-// [Q] [P]     [H] [N] [S]     [W] [C]
-// [F] [G] [B] [J] [B] [N]     [Z] [L]
-// [L] [Q] [Q] [Z] [M] [Q] [F] [G] [D]
-// [S] [Z] [M] [G] [H] [C] [C] [H] [Z]
-// [R] [N] [S] [T] [P] [P] [W] [Q] [G]
-//  1   2   3   4   5   6   7   8   9 `;
+const cratesstr =
+    `            [Q]     [G]     [M]    
+            [B] [S] [V]     [P] [R]
+    [T]     [C] [F] [L]     [V] [N]
+[Q] [P]     [H] [N] [S]     [W] [C]
+[F] [G] [B] [J] [B] [N]     [Z] [L]
+[L] [Q] [Q] [Z] [M] [Q] [F] [G] [D]
+[S] [Z] [M] [G] [H] [C] [C] [H] [Z]
+[R] [N] [S] [T] [P] [P] [W] [Q] [G]
+ 1   2   3   4   5   6   7   8   9 `;
 
 const commands = [
     "move 1 from 2 to 6",
@@ -529,72 +515,69 @@ const commands = [
     "move 1 from 6 to 9",
 ];
 
+const parseCrates = () => {
+    let rows = cratesstr.split('\n');
+    let rg = /\[([A-Z]+)\]/g;
+    let match;
+
+    let crates = {
+        1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []
+    };
+
+    for (let i = 0; i < rows.length; i++) {
+        while (match = rg.exec(rows[i])) {
+            crates[(match.index / 4) + 1].unshift(match[1]);
+        }
+    }
+
+    return crates;
+};
+
+let crates = parseCrates();
+
 const printCrates = () => {
     let msg = '';
     for (let i = 1; i < 10; i++) {
         msg = `${i}: ${crates[i].toString()}`;
         console.log(msg);
-
-
     }
 };
 
 const getTopCrates = () => {
     let msg = "";
-
+    //console.log(crates);
     for (let i = 1; i < 10; i++)
         msg += crates[i][crates[i].length - 1] ?? ' ';
 
     console.log(msg);
 };
 
-
-(() => {
-
-    // part 1
-    crates = crates_init();
-
+const moveCrates = (rev = true) => {
     for (let i = 0; i < commands.length; i++) {
+        let [, amount, , source, , dest] = commands[i].split(' ');
 
-        let cmd = commands[i];
-
-        let amount = cmd.split(' ')[1];
-        let source = cmd.split(' ')[3];
-        let dest = cmd.split(' ')[5];
-
-        //console.log(`Moving ${amount} from ${source} to ${dest}`);
-
-        for (let n = 0; n < amount; n++)
-            // if (crates[source].length > 0)
-            crates[dest].push(crates[source].pop());
-
-        //console.log('\n');
-    };
-
-    getTopCrates();
-
-    // part 2
-    crates = crates_init();
-    //printCrates();
-    for (let i = 0; i < commands.length; i++) {
-
-        let cmd = commands[i];
-
-        let amount = cmd.split(' ')[1];
-        let source = cmd.split(' ')[3];
-        let dest = cmd.split(' ')[5];
-
-        //console.log(`Moving ${amount} from ${source} to ${dest}`);
         let cr = [];
         for (let n = 0; n < amount; n++)
-            //if (crates[source].length > 0)
             cr.push(crates[source].pop());
+
+        if (rev) cr.reverse();
 
         for (let n = 0; n < amount; n++)
             crates[dest].push(cr.pop());
-        //printCrates();
     };
+};
 
+
+(() => {
+    crates = parseCrates();
+    printCrates();
+    // part 1
+    moveCrates();
+    getTopCrates();
+
+    // part 2
+    crates = parseCrates();
+    moveCrates(false);
     getTopCrates();
 
 })();

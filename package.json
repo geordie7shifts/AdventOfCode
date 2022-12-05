@@ -4,6 +4,8 @@
   "authors": "author",
   "version": "1.0.0",
   "main": "pathToMain",
-  "dependencies": {},
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  },
   "type": "module"
 }
