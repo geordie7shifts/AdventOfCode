@@ -48,36 +48,64 @@ abaaaccccccccccccccaaaaaaccccccccccccccaaacccccccccccccccaaaaaaaccaaaaaaccaaccca
 abaaccccccccccccccaaaaaaacccccccccccaaaaaaaaccccccccccccccaaaaaaaaaaaaaacaaaccccccaaaaaccaaaaaaccccccaaaaccccccccccccccccccaaaccccccccccccaaaaaa
 abaaaccccccccccccaaaaaaaaaacccccccccaaaaaaaacccccccccccaaaaaaaaaaaaaaaaaaacccccccaaaaaacaaaaaaaaaccccaaaaaacccccccccccccccccccccccccccccccaaaaaa`;
 
-let startLoc = {};
-let endLoc = {};
+let start = {};
+let end = {};
+let starts = [];
 
-const map = [];
+const map = {};
 
 const parseInput = (input) => {
     let rows = input.split('\n');
-
+    console.log(`map size: ${rows[0].length} x ${rows.length}`);
+    // convert map to number grid
     for (let y = 0; y < rows.length; y++) {
-        let arr = Array.from(rows[i]);
-        map.push([]);
-        //console.log('row', i);
-        let x = 0;
-        while (arr.length) {
-            let ch = arr.shift();
-            //console.log(ch);
+        map[y] = {};
+        let arr = Array.from(rows[y]);
+
+        for (let x = 0; x < arr.length; x++) {
+            let ch = arr[x];
+            let cell = {
+                x, y,
+                height: (ch == 'S' ? 'a' : ch == 'E' ? 'z' : ch).charCodeAt(0) - 96,
+                moves: [],
+            };
+
             if (ch == 'S') {
-                map[map.length - 1].push('a'.charCodeAt(0) - 96);
-                startLoc = { x, y: i };
+                start = { x, y, moves: [] };
             }
-            else if (ch == 'E') {
-                map[map.length - 1].push('z'.charCodeAt(0) - 96);
-                endLoc = { x, y: i };
+            if (ch == 'E') {
+                end = { x, y, moves: [] };
             }
-            else map[map.length - 1].push(ch.charCodeAt(0) - 96);
-            x++;
+
+            if (cell.height == 1)
+                starts.push(cell);
+
+            map[y][x] = cell;
         }
     }
+    // find viable neighbours
+    for (let y = 0; y < rows.length; y++) {
+        let arr = Array.from(rows[y]);
 
+        for (let x = 0; x < arr.length; x++) {
+            // N
+            if (y - 1 >= 0 && map[y - 1][x].height <= map[y][x].height + 1)
+                map[y][x].moves.push({ x, y: y - 1, move: 'n' });
+            // S
+            if (y + 1 < rows.length && map[y + 1][x].height <= map[y][x].height + 1)
+                map[y][x].moves.push({ x, y: y + 1, move: 's' });
+            // E
+            if (x + 1 < arr.length && map[y][x + 1].height <= map[y][x].height + 1)
+                map[y][x].moves.push({ x: x + 1, y, move: 'e' });
+            // W
+            if (x - 1 >= 0 && map[y][x - 1].height <= map[y][x].height + 1)
+                map[y][x].moves.push({ x: x - 1, y, move: 'w' });
+
+        };
+    }
+    //console.log(map);
 };
+
 
 const toDir = (d) => {
     switch (d) {
@@ -87,181 +115,122 @@ const toDir = (d) => {
         case 'w': return '<';
     }
 };
+
+const toDir2 = (d1, d2) => {
+    let cb = d2 + d1;
+    //console.log(cb);
+    //'└', '┘', '┌', '┐', '│', '─';
+    switch (cb) {
+        case 'nn':
+        case 'ss': return '│';
+        case 'ne':
+        case 'ws': return '┌';
+        case 'nw':
+        case 'es': return '┐';
+        case 'ee':
+        case 'ww': return '─';
+        case 'se':
+        case 'wn':
+            return '└';
+        case 'sw':
+        case 'en': return '┘';
+    }
+
+
+};
+
 const isInList = (pos, list) => list.filter(p => p.x == pos.x && p.y == pos.y).length;
 
 const printPath = (path) => {
     let msg = '\npath:\n';
-    for (let y = 0; y < map.length; y++) {
-        for (let x = 0; x < map[0].length; x++) {
-            let p = path.filter(p => p.x == x && p.y == y);
-            if (p.length) {
-                msg += p[0].move ?? "?";
-            }
-            else if (endLoc.x == x && endLoc.y == y)
-                msg += '@';
-            else msg += '.';
+    let cds = path.map(p => { return { x: p[0].split(',')[0], y: p[0].split(',')[1], m: p[1] }; });
+    //console.log(cds);
+    for (let i = 0; i < cds.length - 1; i++) {
+        cds[i].m = toDir2(cds[i].m, cds[i + 1].m);
+    }
+
+    //console.log('cds', cds);
+    for (let col in map) {
+        for (let row in map[col]) {
+            let mv = cds.filter(c => c.x == row && c.y == col);
+            //console.log('mv', mv);
+            if (start.x == row && start.y == col) msg += 'O';
+            else if (end.x == row && end.y == col) msg += 'X';
+            else if (mv.length) msg += mv[0].m;
+            else if (col == 0 || col == Object.keys(map).length - 1 || row == 0 || row == Object.keys(map[0]).length - 1) msg += ' ';
+            else msg += ' ';
         }
         msg += '\n';
     }
-    console.log(msg + `(${path.length - 1} moves)`);
+    console.log(msg + `(${path.length} moves)`);
 };
 
-const getTarget = (pos, dir) => {
-    switch (dir) {
-        case 'n': {
-            return { x: pos.x, y: pos.y - 1 };
-        }
-        case 'w': {
-            return { x: pos.x - 1, y: pos.y };
-        }
-        case 's': {
-            return { x: pos.x, y: pos.y + 1 };
-        }
-        case 'e': {
-            return { x: pos.x + 1, y: pos.y };
-        }
-    };
-};
-
-
-const getTile = (pos) => map[pos.y][pos.x];
-
-const getDistance = (pos) => {
-    let dX = pos.x - endLoc.x;
-    let dY = pos.y - endLoc.y;
-    return Math.abs(dX * dX) + Math.abs(dY * dY);
-};
-
-
-const canMove = (pos, dir) => {
-    //console.log('canMove: ', pos, dir);
-
-    switch (dir) {
-        case 'n': {
-            if (pos.y == 0) return [false];
-            break;
-        }
-        case 'w': {
-            if (pos.x == 0) return [false];
-            break;
-        }
-        case 's': {
-            if (pos.y == map.length - 1) return [false];
-            break;
-        }
-        case 'e': {
-            if (pos.x == map[0].length - 1) return [false];
-            break;
-        }
-    };
-    let target = getTarget(pos, dir);
-
-
-    let res = getTile(target) - getTile(pos);
-    return [res < 2, target];
-};
-
-let dirs = ['n', 'e', 's', 'w'];
-let bestPath = [];
-let i = 0;
-
-const findPath = (path = [startLoc], visitedNodes = []) => {
-    i++;
-    let currentPos = path[path.length - 1];
-
-    if (isInList(currentPos, visitedNodes)) return;
-    visitedNodes.push(currentPos);
-
-    if (path.length >= bestPath.length && bestPath.length != 0) return;
-    let index = bestPath.findIndex(p => p.x == currentPos.x && p.y == currentPos.y);
-    if (index != -1) {
-        if (index < path.length) return;
-    }
-    if (i % 100000 == 0) {
-        console.clear();
-        console.log('iterations:', i);
-        printPath(path, visitedNodes);
-        // for (let i = 0; i < 100000000; i++);
-    }
-    if (currentPos.x == endLoc.x && currentPos.y == endLoc.y) {
-        bestPath = path;
-        return;
-    }
-    // Find possible targets
-    let targets = [];
-    for (let d of dirs) {
-        let [move, target] = canMove(currentPos, d, visitedNodes);
-        if (move) {
-            target.score = getDistance(target);
-            target.dir = d;
-            targets.push(target);
-        }
-    }
-
-    targets.sort((a, b) => a.score - b.score).forEach(t => {
-        path[path.length - 1]['move'] = toDir(t.dir);
-        findPath([...path, t], [...visitedNodes]);
-
-    });
-};
-
-const toC = (pos) => { return { x: pos.x, y: pos.y }; };
+const getTile = pos => map[pos.y][pos.x];
+const toC = (pos) => pos.x + ',' + pos.y;
 
 const bfs = () => {
-    let q = [startLoc];
-    let visited = [startLoc];
+    let q = [getTile(start)];
+    let visited = {};
+    visited[toC(start)] = true;
     let parent = {};
-    parent[startLoc.x] = {};
-    parent[startLoc.x][startLoc.y] = null;
+    parent[toC(start)] = null;
 
     while (q.length) {
-        let curr = q.pop();
-        //console.log('visiting', curr);
+        let curr = q.shift();
+        //console.log('visiting', curr, ' --- total moves possible: ', curr.moves?.length ?? 0);
 
         //visited.push(curr);
-        if (curr.x == endLoc.x && curr.y == endLoc.y) {
-            console.log('found dest');
+        if (curr.x == end.x && curr.y == end.y) {
             break;
         }
-        for (let d of dirs) {
-            let [move, target] = canMove(curr, d);
 
-            if (move && !isInList(target, visited)) {
-                curr.move = toDir(d);
-                visited.push(target);
-                if (!parent[target.x]) parent[target.x] = {};
-                parent[target.x][target.y] = curr;
-                q.push(target);
+        for (let target of curr.moves) {
+            //console.log('looking at', target);
+            if (!visited[toC(target)]) {
+                visited[toC(target)] = true;
+                q.push(getTile(target));
+                parent[toC(target)] = {
+                    p: toC(curr),
+                    m: target.move
+                };
             }
+
         }
     }
 
 
-    let i = 0;
-    let end = endLoc;
     let path = [];
-    while (parent[end.x][end.y]) {
-        i++;
-        //console.log(end, i);
-        path.push(end);
-        end = parent[end.x][end.y];
+    //console.log('parent', parent);
+    let e = toC(end);
+    while (parent[e]) {
+        path.push([parent[e].p, parent[e].m]);
+        e = parent[e].p;
     }
-    console.log(path.length, 'steps');
+    //console.log(path.reverse());
+    //console.log(path.length, 'steps');
     return path;
 };
 
 
 (() => {
     exec(() => {
-        parseInput(testinput);
+        parseInput(rawinput);
         //console.log(map);
-        //console.log(`map ${map[0].length} x ${map.length}`);
+
         let path = bfs();
         printPath(path);
-        //console.log('paths found:\n', paths);
+        console.log(path.length);
+        let p2paths = [];
+        for (let st of starts) {
+            start = st;
+            let path = bfs();
+            if (path.length == 0) continue;
+            //console.log(path.length);
+            p2paths.push(path);
+        }
 
-        //printPath(bestPath);
-        //console.log(bestPath.length - 1);
-
+        let bestPath = p2paths.sort((a, b) => a.length - b.length)[0];
+        printPath(bestPath);
+        console.log(p2paths.sort((a, b) => a.length - b.length)[0].length);
     });
 })();
