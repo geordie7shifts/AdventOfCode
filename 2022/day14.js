@@ -370,9 +370,9 @@ const dropSand = (map) => {
         let i = part2 ? 1 : 0;
         while (dropSand(map)) {
             i++;
-            // console.clear();
-            // printMap(map);
-            // for (let n = 0; n < 50000000; n++);
+            console.clear();
+            printMap(map);
+            for (let n = 0; n < 50000000; n++);
         }
         console.clear();
         printMap(map);
